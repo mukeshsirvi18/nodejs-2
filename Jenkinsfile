@@ -2,54 +2,28 @@ pipeline {
     agent any
 
     environment {
-        DOCKERHUB_CREDENTIALS = credentials('dockerhub-credentials')
-        DOCKERHUB_REPO = 'mukesh18s/nodejs'
+        DOCKER_HUB_REPO = 'mukesh18s/nodejs'
+        DOCKER_HUB_CREDENTIALS = 'dockerhub_credentials'
     }
 
     stages {
-        stage('Build') {
+        stage('Build Docker Image') {
             steps {
                 script {
-                    // Build the Docker image
-                    def app = docker.build("${DOCKERHUB_REPO}:${env.BUILD_ID}")
+                    docker.build("${env.DOCKER_HUB_REPO}:latest")
                 }
             }
         }
-
-        stage('Test') {
+        stage('Push Docker Image') {
             steps {
                 script {
-                    // Run tests (optional)
-                    def app = docker.image("${DOCKERHUB_REPO}:${env.BUILD_ID}")
-                    app.inside {
-                        sh 'npm install'
-                        sh 'npm test'
+                    docker.withRegistry('', "${env.DOCKER_HUB_CREDENTIALS}") {
+                        docker.image("${env.DOCKER_HUB_REPO}:latest").push()
                     }
                 }
-            }
-        }
-
-        stage('Push') {
-            steps {
-                script {
-                    // Push the Docker image to Docker Hub
-                    docker.withRegistry('https://registry.hub.docker.com', 'DOCKERHUB_CREDENTIALS') {
-                        def app = docker.image("${DOCKERHUB_REPO}:${env.BUILD_ID}")
-                        app.push()
-                    }
-                }
-            }
-        }
-    }
-
-    post {
-        always {
-            script {
-                // Clean up the Docker images
-                def app = docker.image("${DOCKERHUB_REPO}:${env.BUILD_ID}")
-                app.remove()
             }
         }
     }
 }
+
 
